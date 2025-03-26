@@ -1,0 +1,60 @@
+# Build directories
+Builds/
+JuceLibraryCode/
+
+# IDE files
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.vst3
+*.component
+*.vst
+*.aax
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# JUCE specific
+**/Builds/VisualStudio20**/x64/
+**/Builds/VisualStudio20**/Win32/
+**/Builds/MacOSX/build/
+**/Builds/iOS/build/
+**/Builds/Android/build/
+**/Builds/LinuxMakefile/build/

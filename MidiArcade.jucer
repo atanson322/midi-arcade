@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<JUCERPROJECT id="MidiArcade" name="MidiArcade" projectType="audioplug" useAppConfig="0"
+              addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1"
+              pluginCharacteristicsValue="pluginProducesMidiOut,pluginWantsMidiIn"
+              pluginFormats="buildVST3,buildStandalone" companyName="midi.arcade"
+              companyCopyright="Copyright (c) 2025 midi.arcade" companyWebsite="www.midi.arcade"
+              companyEmail="info@midi.arcade" pluginDesc="Interactive MIDI Sequencer"
+              pluginManufacturer="midi.arcade" pluginManufacturerCode="MIDC"
+              pluginCode="MARC" pluginVST3Category="Instrument">
+  <MAINGROUP id="MidiArcade" name="MidiArcade">
+    <GROUP id="{01234567-89AB-CDEF-0123-456789ABCDEF}" name="Source">
+      <FILE id="PluginProcessor.h" name="PluginProcessor.h" compile="0" resource="0"
+            file="PluginProcessor.h"/>
+      <FILE id="PluginProcessor.cpp" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="PluginProcessor.cpp"/>
+      <FILE id="PluginEditor.h" name="PluginEditor.h" compile="0" resource="0"
+            file="PluginEditor.h"/>
+      <FILE id="PluginEditor.cpp" name="PluginEditor.cpp" compile="1" resource="0"
+            file="PluginEditor.cpp"/>
+      <FILE id="SequencerEngine.h" name="SequencerEngine.h" compile="0" resource="0"
+            file="SequencerEngine.h"/>
+      <FILE id="SequencerEngine.cpp" name="SequencerEngine.cpp" compile="1" resource="0"
+            file="SequencerEngine.cpp"/>
+      <FILE id="KeySignatureManager.h" name="KeySignatureManager.h" compile="0" resource="0"
+            file="KeySignatureManager.h"/>
+      <FILE id="KeySignatureManager.cpp" name="KeySignatureManager.cpp" compile="1" resource="0"
+            file="KeySignatureManager.cpp"/>
+      <FILE id="MidiDeviceManager.h" name="MidiDeviceManager.h" compile="0" resource="0"
+            file="MidiDeviceManager.h"/>
+      <FILE id="MidiDeviceManager.cpp" name="MidiDeviceManager.cpp" compile="1" resource="0"
+            file="MidiDeviceManager.cpp"/>
+      <FILE id="SequencerGrid.h" name="SequencerGrid.h" compile="0" resource="0"
+            file="SequencerGrid.h"/>
+      <FILE id="SequencerGrid.cpp" name="SequencerGrid.cpp" compile="1" resource="0"
+            file="SequencerGrid.cpp"/>
+      <FILE id="KeySignaturePanel.h" name="KeySignaturePanel.h" compile="0" resource="0"
+            file="KeySignaturePanel.h"/>
+      <FILE id="KeySignaturePanel.cpp" name="KeySignaturePanel.cpp" compile="1" resource="0"
+            file="KeySignaturePanel.cpp"/>
+      <FILE id="MidiInfoPanel.h" name="MidiInfoPanel.h" compile="0" resource="0"
+            file="MidiInfoPanel.h"/>
+      <FILE id="MidiInfoPanel.cpp" name="MidiInfoPanel.cpp" compile="1" resource="0"
+            file="MidiInfoPanel.cpp"/>
+      <FILE id="TransportController.h" name="TransportController.h" compile="0" resource="0"
+            file="TransportController.h"/>
+      <FILE id="TransportController.cpp" name="TransportController.cpp" compile="1" resource="0"
+            file="TransportController.cpp"/>
+    </GROUP>
+  </MAINGROUP>
+  <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
+  <EXPORTFORMATS>
+    <VS2022 targetFolder="Builds/VisualStudio2022">
+      <CONFIGURATIONS>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="MidiArcade"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="MidiArcade"/>
+      </CONFIGURATIONS>
+      <MODULEPATHS>
+        <MODULEPATH id="juce_audio_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_devices" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_formats" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_plugin_client" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_processors" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_audio_utils" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_core" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_data_structures" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_events" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_graphics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_basics" path="../../JUCE/modules"/>
+        <MODULEPATH id="juce_gui_extra" path="../../JUCE/modules"/>
+      </MODULEPATHS>
+    </VS2022>
+  </EXPORTFORMATS>
+  <MODULES>
+    <MODULE id="juce_audio_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_devices" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_formats" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_plugin_client" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_processors" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+  </MODULES>
+</JUCERPROJECT>
