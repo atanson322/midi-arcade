@@ -84,6 +84,8 @@ private:
     double sampleCounter = 0.0;
     double bpm = 120.0;
     double lastPPQPosition = 0.0;
+    int timeSignatureNumerator = 4;
+    int timeSignatureDenominator = 4;
     float stepsPerBeat = 4.0f;
     
     // Scale and note properties

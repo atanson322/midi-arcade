@@ -12,6 +12,8 @@ SequencerEngine::SequencerEngine()
     samplesPerStep = 0.0;
     sampleCounter = 0.0;
     bpm = 120.0;
+    timeSignatureNumerator = 4;
+    timeSignatureDenominator = 4;
     resolutionMultiplier = NORMAL_TIME;
     lastPPQPosition = 0.0;
     initialize(numSteps, numRows);
@@ -24,30 +26,28 @@ SequencerEngine::~SequencerEngine()
 
 void SequencerEngine::initialize(int steps, int rows)
 {
+    // Set grid dimensions
     numSteps = steps;
     numRows = rows;
     
     // Initialize the grid with all steps off
     sequencerGrid.resize(numSteps);
-    for (auto& column : sequencerGrid)
+    for (int i = 0; i < numSteps; ++i)
     {
-        column.resize(numRows, false);
+        sequencerGrid[i].resize(numRows, false);
     }
     
-    // Initialize key signature manager
-    rootNote = 0; // C
-    scaleIntervals = {0, 3, 5, 7, 10}; // Minor pentatonic
-    
-    // Reset playback state
+    // Initialize with default values
     currentStep = 0;
     isPlaying = false;
-    sampleCounter = 0.0;
-    lastPPQPosition = 0.0;
+    
+    // Default timing values - these will be updated from the DAW
     bpm = 120.0;
-    stepsPerBeat = 4;
-    sampleRate = 44100.0;
-    samplesPerStep = 0.0;
-    resolutionMultiplier = NORMAL_TIME;
+    timeSignatureNumerator = 4;
+    timeSignatureDenominator = 4;
+    
+    // Update timing calculations
+    updateStepLength();
 }
 
 void SequencerEngine::prepareToPlay(double newSampleRate, int samplesPerBlock)
@@ -58,45 +58,71 @@ void SequencerEngine::prepareToPlay(double newSampleRate, int samplesPerBlock)
 
 void SequencerEngine::updateStepLength()
 {
-    // Calculate samples per step based on BPM and time signature
-    // (numSteps normally represents a whole bar in 4/4)
-    double beatsPerBar = 4.0; // 4/4 time signature
-    double stepsPerBeat = numSteps / beatsPerBar;
-    double secondsPerBeat = 60.0 / bpm;
-    double secondsPerStep = secondsPerBeat / stepsPerBeat;
-    
-    // Apply resolution multiplier
-    switch (resolutionMultiplier)
+    // Calculate samples per step based on BPM, time signature, and sample rate
+    if (bpm > 0.0 && sampleRate > 0.0)
     {
-        case HALF_TIME:
-            secondsPerStep *= 2.0;
-            break;
-        case DOUBLE_TIME:
-            secondsPerStep *= 0.5;
-            break;
-        case NORMAL_TIME:
-        default:
-            break;
+        // Calculate beats per minute to beats per second
+        double beatsPerSecond = bpm / 60.0;
+        
+        // Calculate seconds per beat
+        double secondsPerBeat = 1.0 / beatsPerSecond;
+        
+        // Calculate beats per bar based on time signature
+        double beatsPerBar = timeSignatureNumerator * (4.0 / timeSignatureDenominator);
+        
+        // Calculate steps per beat based on our grid size and time signature
+        double stepsPerBar = numSteps;
+        double stepsPerBeat = stepsPerBar / beatsPerBar;
+        
+        // Calculate seconds per step
+        double secondsPerStep = secondsPerBeat / stepsPerBeat;
+        
+        // Calculate samples per step
+        samplesPerStep = secondsPerStep * sampleRate;
+        
+        DBG("Updated timing - BPM: " + juce::String(bpm) + 
+            " Time Sig: " + juce::String(timeSignatureNumerator) + "/" + juce::String(timeSignatureDenominator) + 
+            " Samples per step: " + juce::String(samplesPerStep));
     }
-    
-    samplesPerStep = secondsPerStep * sampleRate;
 }
 
 void SequencerEngine::updatePlayheadPosition(const juce::AudioPlayHead::CurrentPositionInfo& posInfo)
 {
-    // Update BPM from host
+    // Update timing information from the DAW
     if (posInfo.bpm > 0.0)
     {
-        bpm = posInfo.bpm;
-        updateStepLength();
+        // Only update if the BPM has changed to avoid unnecessary calculations
+        if (bpm != posInfo.bpm)
+        {
+            bpm = posInfo.bpm;
+            DBG("BPM updated from DAW: " + juce::String(bpm));
+            updateStepLength();
+        }
+    }
+    
+    // Update time signature if available
+    if (posInfo.timeSigNumerator > 0 && posInfo.timeSigDenominator > 0)
+    {
+        if (timeSignatureNumerator != posInfo.timeSigNumerator || 
+            timeSignatureDenominator != posInfo.timeSigDenominator)
+        {
+            timeSignatureNumerator = posInfo.timeSigNumerator;
+            timeSignatureDenominator = posInfo.timeSigDenominator;
+            DBG("Time signature updated from DAW: " + 
+                juce::String(timeSignatureNumerator) + "/" + 
+                juce::String(timeSignatureDenominator));
+        }
     }
     
     // Calculate which step we should be on based on PPQ position
     if (posInfo.isPlaying && posInfo.ppqPosition >= 0.0)
     {
-        // Calculate beats per step in 4/4 time
-        double beatsPerBar = 4.0;
-        double stepsPerBeat = numSteps / beatsPerBar;
+        // Calculate beats per bar based on time signature
+        double beatsPerBar = timeSignatureNumerator * (4.0 / timeSignatureDenominator);
+        
+        // Calculate steps per beat based on our grid size and time signature
+        double stepsPerBar = numSteps;
+        double stepsPerBeat = stepsPerBar / beatsPerBar;
         double ppqPerStep = 1.0 / stepsPerBeat;
         
         // Calculate current position within a pattern cycle
@@ -108,9 +134,35 @@ void SequencerEngine::updatePlayheadPosition(const juce::AudioPlayHead::CurrentP
         // If the step has changed, update
         if (newStep != currentStep)
         {
+            // When jumping to a new position or starting playback
+            if (std::abs(lastPPQPosition - posInfo.ppqPosition) > ppqPerStep || !isPlaying)
+            {
+                // Calculate how far we are into the current step (0.0 to 1.0)
+                double stepPhase = std::fmod(adjustedPpq / ppqPerStep, 1.0);
+                
+                // Set sample counter based on phase within the step
+                sampleCounter = stepPhase * samplesPerStep;
+                
+                // Debug output
+                DBG("Transport jump detected! PPQ: " + juce::String(posInfo.ppqPosition) + 
+                    " Step: " + juce::String(newStep) + 
+                    " Phase: " + juce::String(stepPhase));
+            }
+            else
+            {
+                // Normal step change during playback
+                sampleCounter = 0.0;
+            }
+            
             currentStep = newStep;
-            sampleCounter = 0.0; // Reset counter for tighter timing
+            
+            // Debug output
+            DBG("Step changed to: " + juce::String(currentStep) + 
+                " at PPQ: " + juce::String(posInfo.ppqPosition) + 
+                " BPM: " + juce::String(bpm));
         }
+        
+        lastPPQPosition = posInfo.ppqPosition;
     }
 }
 
@@ -118,6 +170,10 @@ void SequencerEngine::processBlock(juce::MidiBuffer& midiBuffer, int numSamples)
 {
     if (!isPlaying || bpm <= 0.0)
         return;
+    
+    // Debug output
+    DBG("Processing block: " + juce::String(numSamples) + " samples, currentStep: " + 
+        juce::String(currentStep) + ", sampleCounter: " + juce::String(sampleCounter));
     
     // Calculate how many samples we need to process
     int samplePosition = 0;
@@ -127,31 +183,67 @@ void SequencerEngine::processBlock(juce::MidiBuffer& midiBuffer, int numSamples)
         // Calculate samples to next step, avoiding division by zero
         double effectiveSamplesPerStep = samplesPerStep > 0.0 ? samplesPerStep : sampleRate / 4.0;
         
+        // Calculate remaining samples in current step
+        int samplesInCurrentStep = static_cast<int>(effectiveSamplesPerStep - sampleCounter);
+        
+        // Ensure we don't go negative
+        if (samplesInCurrentStep < 0)
+        {
+            // We're past the step boundary, reset counter
+            sampleCounter = 0.0;
+            samplesInCurrentStep = static_cast<int>(effectiveSamplesPerStep);
+            
+            // Debug output
+            DBG("Sample counter reset - was negative");
+        }
+        
         int samplesToNextStep = juce::jmin(
             numSamples - samplePosition,
-            static_cast<int>(effectiveSamplesPerStep - sampleCounter)
+            samplesInCurrentStep
         );
         
-        // If we've reached the next step
-        if (sampleCounter + samplesToNextStep >= effectiveSamplesPerStep)
+        // If we've reached the next step or we're exactly at a step boundary (sampleCounter == 0)
+        if ((sampleCounter + samplesToNextStep >= effectiveSamplesPerStep) || 
+            (sampleCounter == 0.0 && samplesToNextStep > 0))
         {
-            // Calculate the exact sample offset for the step change
-            int offsetToNextStep = static_cast<int>(effectiveSamplesPerStep - sampleCounter);
+            int offsetToNextStep;
             
-            // Send note-off events for the current step
-            sendNoteOffEvents(midiBuffer, samplePosition + offsetToNextStep);
-            
-            // Advance to the next step
-            advanceStep();
-            
-            // Send note-on events for the new step
-            sendNoteOnEvents(midiBuffer, samplePosition + offsetToNextStep);
+            // Handle case where we're exactly at a step boundary
+            if (sampleCounter == 0.0)
+            {
+                // We're exactly at the step boundary, trigger immediately
+                offsetToNextStep = 0;
+                
+                // Debug output
+                DBG("Exactly at step boundary - triggering immediately");
+                
+                // Send note-on events for the current step
+                sendNoteOnEvents(midiBuffer, samplePosition);
+            }
+            else
+            {
+                // Calculate the exact sample offset for the step change
+                offsetToNextStep = static_cast<int>(effectiveSamplesPerStep - sampleCounter);
+                
+                // Send note-off events for the current step
+                sendNoteOffEvents(midiBuffer, samplePosition + offsetToNextStep);
+                
+                // Advance to the next step
+                advanceStep();
+                
+                // Send note-on events for the new step
+                sendNoteOnEvents(midiBuffer, samplePosition + offsetToNextStep);
+                
+                // Debug output
+                DBG("Step advanced to: " + juce::String(currentStep) + 
+                    " at offset: " + juce::String(offsetToNextStep));
+            }
             
             // Reset sample counter
             sampleCounter = 0.0;
             
             // Move forward by the offset amount
-            samplePosition += offsetToNextStep;
+            samplePosition += offsetToNextStep > 0 ? offsetToNextStep : samplesToNextStep;
         }
         else
         {
@@ -360,6 +452,8 @@ juce::ValueTree SequencerEngine::getState() const
     state.setProperty("lowestNote", lowestNote, nullptr);
     state.setProperty("rootNote", rootNote, nullptr);
     state.setProperty("resolutionMultiplier", static_cast<int>(resolutionMultiplier), nullptr);
+    state.setProperty("timeSignatureNumerator", timeSignatureNumerator, nullptr);
+    state.setProperty("timeSignatureDenominator", timeSignatureDenominator, nullptr);
     
     // Store grid data
     juce::ValueTree gridData("GRID_DATA");
@@ -410,6 +504,8 @@ void SequencerEngine::setState(const juce::ValueTree& state)
     rootNote = state.getProperty("rootNote", 60);
     resolutionMultiplier = static_cast<ResolutionMultiplier>(
         static_cast<int>(state.getProperty("resolutionMultiplier", static_cast<int>(NORMAL_TIME))));
+    timeSignatureNumerator = state.getProperty("timeSignatureNumerator", 4);
+    timeSignatureDenominator = state.getProperty("timeSignatureDenominator", 4);
     
     // Clear the grid
     clearAllSteps();

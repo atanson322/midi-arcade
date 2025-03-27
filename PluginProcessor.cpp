@@ -91,6 +91,11 @@ void MidiArcadeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     
     if (playHead != nullptr && playHead->getCurrentPosition(posInfo))
     {
+        // Debug output for transport position
+        DBG("Host Position - PPQ: " + juce::String(posInfo.ppqPosition) + 
+            " BPM: " + juce::String(posInfo.bpm) + 
+            " isPlaying: " + (posInfo.isPlaying ? juce::String("Yes") : juce::String("No")));
+            
         // Store the current position info
         currentPositionInfo = posInfo;
         
@@ -100,16 +105,43 @@ void MidiArcadeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         // Update playing state based on host transport
         if (posInfo.isPlaying && !isPlaying)
         {
+            DBG("Starting sequencer from host transport");
             startSequencer();
         }
         else if (!posInfo.isPlaying && isPlaying)
         {
+            DBG("Stopping sequencer from host transport");
             stopSequencer();
         }
     }
     
     // Process sequencer to generate MIDI events
     sequencerEngine.processBlock(sequencerOutput, buffer.getNumSamples());
+    
+    // Debug MIDI output
+    if (sequencerOutput.getNumEvents() > 0)
+    {
+        DBG("Generated " + juce::String(sequencerOutput.getNumEvents()) + " MIDI events");
+        
+        // Iterate through MIDI messages for debugging
+        for (const auto metadata : sequencerOutput)
+        {
+            auto message = metadata.getMessage();
+            if (message.isNoteOn())
+            {
+                DBG("Note On: " + juce::String(message.getNoteNumber()) + 
+                    " Velocity: " + juce::String(message.getVelocity()) + 
+                    " Channel: " + juce::String(message.getChannel()) + 
+                    " Sample: " + juce::String(metadata.samplePosition));
+            }
+            else if (message.isNoteOff())
+            {
+                DBG("Note Off: " + juce::String(message.getNoteNumber()) + 
+                    " Channel: " + juce::String(message.getChannel()) + 
+                    " Sample: " + juce::String(metadata.samplePosition));
+            }
+        }
+    }
     
     // Replace the input buffer with our output
     midiMessages.clear();
