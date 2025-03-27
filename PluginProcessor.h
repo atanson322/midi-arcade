@@ -45,15 +45,20 @@ public:
     SequencerEngine* getSequencerEngine() { return &sequencerEngine; }
     MidiDeviceManager* getMidiDeviceManager() { return &midiDeviceManager; }
 
+    // Get current transport info for UI display
+    juce::AudioPlayHead::CurrentPositionInfo getTransportInfo() const { return currentPositionInfo; }
+
     // Parameters
     juce::AudioProcessorValueTreeState parameters;
-
-private:
+    
     // Sequencer engine
     SequencerEngine sequencerEngine;
     
     // MIDI device manager
     MidiDeviceManager midiDeviceManager;
+    
+    // Current playhead position info
+    juce::AudioPlayHead::CurrentPositionInfo currentPositionInfo;
     
     // Transport state
     bool isPlaying = false;

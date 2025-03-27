@@ -3,8 +3,7 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-class TransportController : public juce::Component,
-                           public juce::Button::Listener
+class TransportController : public juce::Component
 {
 public:
     TransportController(MidiArcadeAudioProcessor& processor);
@@ -13,10 +12,7 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
     
-    // Button listener implementation
-    void buttonClicked(juce::Button* button) override;
-    
-    // Update the transport display
+    // Update the MIDI info display
     void update();
     
 private:
@@ -24,12 +20,9 @@ private:
     MidiArcadeAudioProcessor& audioProcessor;
     
     // UI Components
-    juce::TextButton playButton;
-    juce::TextButton stopButton;
-    juce::Label tempoDisplay;
-    
-    // Helper methods
-    void updateButtonStates();
+    juce::Label midiInfoLabel;
+    juce::Label lastNoteLabel;
+    juce::Label channelLabel;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TransportController)
 };

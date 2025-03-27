@@ -39,6 +39,17 @@ private:
     // Toggle button for MIDI info panel
     juce::TextButton midiInfoToggleButton;
     
+    // New UI controls
+    juce::TextButton octaveUpButton;
+    juce::TextButton octaveDownButton;
+    juce::Label octaveLabel;
+    
+    juce::ComboBox resolutionSelector;
+    juce::Label resolutionLabel;
+    
+    juce::TextButton randomButton;
+    juce::TextButton clearButton;
+    
     // Viewport for scrolling the sequencer grid
     juce::Viewport sequencerViewport;
     
@@ -49,10 +60,11 @@ private:
     void updateMidiDeviceList();
     void midiDeviceChanged();
     void toggleMidiInfoPanel();
+    void updateOctaveLabel();
+    void setupCyberpunkLookAndFeel();
     
     // Cyberpunk UI styling
     juce::LookAndFeel_V4 cyberpunkLookAndFeel;
-    void setupCyberpunkLookAndFeel();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidiArcadeAudioProcessorEditor)
 };

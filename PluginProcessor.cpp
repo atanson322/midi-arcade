@@ -57,7 +57,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MidiArcadeAudioProcessor::cr
 
 void MidiArcadeAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Prepare sequencer with sample rate
+    // Setup the sequencer with the correct sample rate and buffer size
     sequencerEngine.prepareToPlay(sampleRate, samplesPerBlock);
 }
 
@@ -82,27 +82,38 @@ void MidiArcadeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     // Clear the output audio buffer
     buffer.clear();
     
+    // Create a fresh MIDI buffer for our sequencer output
+    juce::MidiBuffer sequencerOutput;
+    
     // Get current playhead info
     juce::AudioPlayHead* playHead = getPlayHead();
     juce::AudioPlayHead::CurrentPositionInfo posInfo;
     
     if (playHead != nullptr && playHead->getCurrentPosition(posInfo))
     {
+        // Store the current position info
+        currentPositionInfo = posInfo;
+        
         // Update sequencer with current playhead position
         sequencerEngine.updatePlayheadPosition(posInfo);
         
         // Update playing state based on host transport
         if (posInfo.isPlaying && !isPlaying)
+        {
             startSequencer();
+        }
         else if (!posInfo.isPlaying && isPlaying)
+        {
             stopSequencer();
+        }
     }
     
     // Process sequencer to generate MIDI events
-    if (isPlaying)
-    {
-        sequencerEngine.processBlock(midiMessages, buffer.getNumSamples());
-    }
+    sequencerEngine.processBlock(sequencerOutput, buffer.getNumSamples());
+    
+    // Replace the input buffer with our output
+    midiMessages.clear();
+    midiMessages.addEvents(sequencerOutput, 0, buffer.getNumSamples(), 0);
     
     // In standalone mode, route MIDI to selected output device
     if (wrapperType == wrapperType_Standalone)
@@ -111,16 +122,54 @@ void MidiArcadeAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     }
 }
 
+void MidiArcadeAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+    // Save the sequencer state
+    auto state = sequencerEngine.getState();
+    
+    // Add it to the processor's state
+    auto processorState = parameters.copyState();
+    processorState.appendChild(state, nullptr);
+    
+    // Convert to XML and save
+    std::unique_ptr<juce::XmlElement> xml(processorState.createXml());
+    copyXmlToBinary(*xml, destData);
+}
+
+void MidiArcadeAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
+    // Load from XML
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    
+    if (xmlState != nullptr)
+    {
+        // Restore processor state
+        auto processorState = juce::ValueTree::fromXml(*xmlState);
+        parameters.replaceState(processorState);
+        
+        // Find and restore sequencer state
+        for (int i = 0; i < processorState.getNumChildren(); ++i)
+        {
+            auto child = processorState.getChild(i);
+            if (child.hasType("SequencerState"))
+            {
+                sequencerEngine.setState(child);
+                break;
+            }
+        }
+    }
+}
+
 void MidiArcadeAudioProcessor::startSequencer()
 {
-    sequencerEngine.start();
     isPlaying = true;
+    sequencerEngine.start();
 }
 
 void MidiArcadeAudioProcessor::stopSequencer()
 {
-    sequencerEngine.stop();
     isPlaying = false;
+    sequencerEngine.stop();
 }
 
 bool MidiArcadeAudioProcessor::isSequencerPlaying() const
@@ -145,17 +194,17 @@ const juce::String MidiArcadeAudioProcessor::getName() const
 
 bool MidiArcadeAudioProcessor::acceptsMidi() const
 {
-    return true;
+    return true; // This plugin accepts MIDI input but doesn't use it
 }
 
 bool MidiArcadeAudioProcessor::producesMidi() const
 {
-    return true;
+    return true; // This plugin produces MIDI output
 }
 
 bool MidiArcadeAudioProcessor::isMidiEffect() const
 {
-    return true;
+    return true; // This is a MIDI effect plugin
 }
 
 double MidiArcadeAudioProcessor::getTailLengthSeconds() const
@@ -186,42 +235,6 @@ const juce::String MidiArcadeAudioProcessor::getProgramName(int index)
 void MidiArcadeAudioProcessor::changeProgramName(int index, const juce::String& newName)
 {
     // No programs to rename
-}
-
-void MidiArcadeAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
-{
-    // Save parameters and sequencer state
-    auto state = parameters.copyState();
-    
-    // Add sequencer grid state
-    juce::ValueTree sequencerState = sequencerEngine.getState();
-    state.addChild(sequencerState, -1, nullptr);
-    
-    std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
-}
-
-void MidiArcadeAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
-{
-    // Restore parameters and sequencer state
-    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-    
-    if (xmlState.get() != nullptr)
-    {
-        auto state = juce::ValueTree::fromXml(*xmlState);
-        parameters.replaceState(state);
-        
-        // Find and restore sequencer grid state
-        for (int i = 0; i < state.getNumChildren(); ++i)
-        {
-            juce::ValueTree child = state.getChild(i);
-            if (child.hasType("SequencerState"))
-            {
-                sequencerEngine.setState(child);
-                break;
-            }
-        }
-    }
 }
 
 // This creates new instances of the plugin

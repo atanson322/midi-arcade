@@ -52,6 +52,19 @@ public:
     KeySignatureManager* getKeySignatureManager() { return &keySignatureManager; }
     const MidiEventInfo& getCurrentMidiInfo() const { return currentMidiInfo; }
     
+    // Octave shifting
+    void shiftOctaveUp();
+    void shiftOctaveDown();
+    int getCurrentOctave() const;
+    
+    // Resolution control
+    enum ResolutionMultiplier { HALF_TIME = 0, NORMAL_TIME = 1, DOUBLE_TIME = 2 };
+    void setResolutionMultiplier(ResolutionMultiplier multiplier);
+    ResolutionMultiplier getResolutionMultiplier() const { return resolutionMultiplier; }
+    
+    // Random sequence generation
+    void generateRandomSequence();
+    
     // State saving/loading
     juce::ValueTree getState() const;
     void setState(const juce::ValueTree& state);
@@ -70,12 +83,21 @@ private:
     double samplesPerStep = 0.0;
     double sampleCounter = 0.0;
     double bpm = 120.0;
+    double lastPPQPosition = 0.0;
+    float stepsPerBeat = 4.0f;
+    
+    // Scale and note properties
+    int rootNote = 60; // Middle C
+    std::vector<int> scaleIntervals = { 0, 3, 5, 7, 10 }; // Minor pentatonic scale
     
     // Key signature management
     KeySignatureManager keySignatureManager;
     
     // MIDI event info for display
     MidiEventInfo currentMidiInfo;
+    
+    // Resolution multiplier
+    ResolutionMultiplier resolutionMultiplier = NORMAL_TIME;
     
     // Helper methods
     void advanceStep();

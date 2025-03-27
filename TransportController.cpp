@@ -1,100 +1,77 @@
 #include "TransportController.h"
 
-TransportController::TransportController(MidiArcadeAudioProcessor& processor)
-    : audioProcessor(processor)
+TransportController::TransportController(MidiArcadeAudioProcessor& p)
+    : audioProcessor(p)
 {
-    // Set up play button
-    playButton.setButtonText("Play");
-    playButton.addListener(this);
-    addAndMakeVisible(playButton);
+    // Set up MIDI info label
+    midiInfoLabel.setText("MIDI OUTPUT", juce::dontSendNotification);
+    midiInfoLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    midiInfoLabel.setJustificationType(juce::Justification::centred);
+    midiInfoLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible(midiInfoLabel);
     
-    // Set up stop button
-    stopButton.setButtonText("Stop");
-    stopButton.addListener(this);
-    addAndMakeVisible(stopButton);
+    // Set up last note label
+    lastNoteLabel.setText("No MIDI data", juce::dontSendNotification);
+    lastNoteLabel.setFont(juce::Font(12.0f));
+    lastNoteLabel.setJustificationType(juce::Justification::centred);
+    lastNoteLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    addAndMakeVisible(lastNoteLabel);
     
-    // Set up tempo display
-    tempoDisplay.setText("120 BPM", juce::dontSendNotification);
-    tempoDisplay.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(tempoDisplay);
-    
-    // Update button states
-    updateButtonStates();
+    // Set up channel label
+    channelLabel.setText("Channel: --", juce::dontSendNotification);
+    channelLabel.setFont(juce::Font(12.0f));
+    channelLabel.setJustificationType(juce::Justification::centred);
+    channelLabel.setColour(juce::Label::textColourId, juce::Colours::lightblue);
+    addAndMakeVisible(channelLabel);
 }
 
 TransportController::~TransportController()
 {
-    playButton.removeListener(this);
-    stopButton.removeListener(this);
 }
 
 void TransportController::paint(juce::Graphics& g)
 {
-    // Draw panel background
-    g.setColour(juce::Colour(0xFF202830));
-    g.fillRoundedRectangle(getLocalBounds().toFloat(), 10.0f);
+    // Draw background
+    g.fillAll(juce::Colour(0xFF202020));
     
     // Draw border
-    g.setColour(juce::Colour(0xFF00FF00)); // Green border for transport
-    g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.0f), 10.0f, 2.0f);
-    
-    // Draw title
-    g.setFont(juce::Font("Consolas", 16.0f, juce::Font::bold));
-    g.setColour(juce::Colour(0xFFCCFFFF));
-    g.drawText("Transport", getLocalBounds().removeFromTop(30), juce::Justification::centred, false);
+    g.setColour(juce::Colours::grey);
+    g.drawRect(getLocalBounds(), 1);
 }
 
 void TransportController::resized()
 {
-    auto area = getLocalBounds();
+    auto area = getLocalBounds().reduced(5);
     
-    // Title area
-    area.removeFromTop(30);
-    
-    // Divide remaining area into three sections
-    int buttonWidth = area.getWidth() / 3;
-    
-    // Play button
-    playButton.setBounds(area.removeFromLeft(buttonWidth).reduced(5));
-    
-    // Stop button
-    stopButton.setBounds(area.removeFromLeft(buttonWidth).reduced(5));
-    
-    // Tempo display
-    tempoDisplay.setBounds(area.reduced(5));
-}
-
-void TransportController::buttonClicked(juce::Button* button)
-{
-    if (button == &playButton)
-    {
-        // Start playback
-        audioProcessor.startSequencer();
-    }
-    else if (button == &stopButton)
-    {
-        // Stop playback
-        audioProcessor.stopSequencer();
-    }
-    
-    // Update button states
-    updateButtonStates();
+    // Position labels
+    midiInfoLabel.setBounds(area.removeFromTop(20));
+    area.removeFromTop(5); // Add some spacing
+    lastNoteLabel.setBounds(area.removeFromTop(20));
+    area.removeFromTop(5); // Add some spacing
+    channelLabel.setBounds(area.removeFromTop(20));
 }
 
 void TransportController::update()
 {
-    // Update button states
-    updateButtonStates();
+    // Get current MIDI info from the sequencer
+    auto midiInfo = audioProcessor.getSequencerEngine()->getCurrentMidiInfo();
     
-    // Update tempo display (if we had access to the current tempo)
-    // For now, just use a fixed value
-    tempoDisplay.setText("120 BPM", juce::dontSendNotification);
-}
-
-void TransportController::updateButtonStates()
-{
-    bool isPlaying = audioProcessor.isSequencerPlaying();
+    // Update the last note label
+    if (midiInfo.noteName.isNotEmpty())
+    {
+        lastNoteLabel.setText("Last Note: " + midiInfo.noteName + " (" + juce::String(midiInfo.noteNumber) + "), Velocity: " + juce::String(midiInfo.velocity),
+                            juce::dontSendNotification);
+        lastNoteLabel.setColour(juce::Label::textColourId, juce::Colours::lime);
+    }
+    else
+    {
+        lastNoteLabel.setText("No MIDI data", juce::dontSendNotification);
+        lastNoteLabel.setColour(juce::Label::textColourId, juce::Colours::orange);
+    }
     
-    playButton.setEnabled(!isPlaying);
-    stopButton.setEnabled(isPlaying);
+    // Update channel label
+    channelLabel.setText("Channel: " + juce::String(midiInfo.channel), juce::dontSendNotification);
+    
+    // Force a repaint to ensure the display updates
+    repaint();
 }

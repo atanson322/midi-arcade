@@ -27,6 +27,15 @@ public:
     // Get the number of rows
     int getNumRows() const { return sequencerEngine->getNumRows(); }
     
+    // Get the width of a cell
+    int getCellWidth() const { return cellWidth; }
+    
+    // Get the width of the note name area
+    int getNoteNameWidth() const { return noteNameWidth; }
+    
+    // Get the number of steps
+    int getNumSteps() const { return sequencerEngine->getNumSteps(); }
+    
 private:
     SequencerEngine* sequencerEngine;
     
